@@ -596,7 +596,7 @@ def main(args):
         output = os.path.join(s.dataDir, "selected.tsv")
         df = pd.read_csv(result, delimiter="\t")
         gt_to_keep = ["0/1", "1/1", "1/0", "0|1", "1|1", "1|0"]
-        rows = (df.columns.to_series().map(lambda x: str(x) in gt_to_keep)).any(axis=1)
+        rows = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=1)
         df.loc[rows].to_csv(output, index=False, sep="\t")
         lg.info(f"Results were saved to: {output}")
 
