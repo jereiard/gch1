@@ -300,10 +300,16 @@ def copy_data():
             not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release7.pvar"))):
             shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ImputedGenoPath}/{s.ancestry}/chr14_{s.ancestry}_release7* {s.dataDir}')
         #shell_do(f'gsutil -u {s.billingProjectID} ls {s.gp2ImputedGenoPath}')
+        if not os.path.exists(os.path.join(s.dataDir, "GP2_clinical_data_dictionary.xlsx")):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/GP2_clinical_data_dictionary.xlsx {s.dataDir}')
+        if not os.path.exists(os.path.join(s.dataDir, "clinical_data_master_release7.csv")):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/clinical_data_master_release7.csv {s.dataDir}')
+        if not os.path.exists(os.path.join(s.dataDir, "clinical_data_summary_release7.xlsx")):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/clinical_data_summary_release7.xlsx {s.dataDir}')
+        if not os.path.exists(os.path.join(s.dataDir, "master_key_release7_data_dictionary.csv")):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/master_key_release7_data_dictionary.csv {s.dataDir}')
         if not os.path.exists(os.path.join(s.dataDir, "master_key_release7_final.csv")):
             shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/master_key_release7_final.csv {s.dataDir}')
-        if not os.path.exists(os.path.join(s.dataDir, "extended_clinical_data_release7.csv")):
-            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/extended_clinical_data_release7.csv {s.dataDir}')
 
         lg.info(f"Data downloaded in {s.dataDir}")
         
