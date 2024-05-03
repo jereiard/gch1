@@ -597,7 +597,12 @@ def main(args):
         df = pd.read_csv(result, delimiter="\t")
         gt_to_keep = ["0/1", "1/1", "1/0", "0|1", "1|1", "1|0"]
         rows = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=1)
-        df.loc[rows].to_csv(output, index=False, sep="\t")
+        cols = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=0)
+        for colHeader in headers:
+            cols[colHeader] = True
+        filtered = df.loc[rows]
+        filtered = filtered.loc[: cols]
+        filtered.to_csv(output, index=False, sep="\t")
         lg.info(f"Results were saved to: {output}")
 
         #result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
