@@ -452,7 +452,7 @@ def main(args):
     s.ampWGSReleasePlinkPath=AMP_WGS_RELEASE_PLINK_PATH
     s.ampWGSReleasePlinkFiles=AMP_WGS_RELEASE_PLINK_PFILES
     s.homeDir=os.path.expanduser("~")    
-    s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data")    
+    s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry)    
     s.toolDir=os.path.join(s.homeDir, "data", "gch1", "tools")
     s.totalMemSizeGB=2 ** (int((psutil.virtual_memory().total / (1024 ** 3))).bit_length() - 1)
     settings.set_value(s)
