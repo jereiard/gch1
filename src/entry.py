@@ -273,7 +273,7 @@ def extract_gch1():
     try:
         os.chdir(s.dataDir)
         plink2Bin=os.path.join(s.toolDir, "plink2", "plink2")
-        shell_do(f'{plink2Bin} --pfile chr14_{s.ancestry}_release6 --chr 14 --from-bp 54842007 --to-bp 54902836 --make-bed --out pheno_GCH1_{s.ancestry}')
+        shell_do(f'{plink2Bin} --pfile chr14_{s.ancestry}_release7 --chr 14 --from-bp 54842007 --to-bp 54902836 --make-bed --out pheno_GCH1_{s.ancestry}')
         shell_do(f'{plink2Bin} --bfile pheno_GCH1_{s.ancestry} --export vcf --out pheno_GCH1_{s.ancestry}_final')
 
     except Exception as ex:
@@ -294,16 +294,16 @@ def copy_data():
         
         #shell_do(f'gsutil -u {s.billingProjectID} ls {s.gp2ImputedGenoPath}')
         #shell_do(f'gsutil -u {s.billingProjectID} ls -l {s.gp2ImputedGenoPath}/{s.ancestry}/')
-        if (not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release6.log")) or
-            not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release6.pgen")) or
-            not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release6.psam")) or
-            not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release6.pvar"))):
-            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ImputedGenoPath}/{s.ancestry}/chr14_{s.ancestry}_release6* {s.dataDir}')
+        if (not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release7.log")) or
+            not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release7.pgen")) or
+            not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release7.psam")) or
+            not os.path.exists(os.path.join(s.dataDir, f"chr14_{s.ancestry}_release7.pvar"))):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ImputedGenoPath}/{s.ancestry}/chr14_{s.ancestry}_release7* {s.dataDir}')
         #shell_do(f'gsutil -u {s.billingProjectID} ls {s.gp2ImputedGenoPath}')
-        if not os.path.exists(os.path.join(s.dataDir, "master_key_release6_final.csv")):
-            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/master_key_release6_final.csv {s.dataDir}')
-        if not os.path.exists(os.path.join(s.dataDir, "extended_clinical_data_release6.csv")):
-            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/extended_clinical_data_release6.csv {s.dataDir}')
+        if not os.path.exists(os.path.join(s.dataDir, "master_key_release7_final.csv")):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/master_key_release7_final.csv {s.dataDir}')
+        if not os.path.exists(os.path.join(s.dataDir, "extended_clinical_data_release7.csv")):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2ClinicalReleasePath}/extended_clinical_data_release7.csv {s.dataDir}')
 
         lg.info(f"Data downloaded in {s.dataDir}")
         
