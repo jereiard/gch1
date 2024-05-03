@@ -601,7 +601,7 @@ def main(args):
         for colHeader in headers:
             cols[colHeader] = True
         filtered = df.loc[rows]
-        filtered = filtered.loc[: cols]
+        filtered = filtered.loc[:, cols]
         filtered.to_csv(output, index=False, sep="\t")
         lg.info(f"Results were saved to: {output}")
 
