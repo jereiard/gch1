@@ -4,6 +4,8 @@ import argparse
 import shlex
 import uuid
 import psutil
+import multiprocessing
+import pandas as pd
 from pathlib import Path
 from pck.gchutil import *
 from pck.log import logger as lg
@@ -48,6 +50,46 @@ class SingletonFactory:
     
 singletonFactory=SingletonFactory()
 settings=singletonFactory.get_singleton_instance({})
+
+def reheader_tsv_py(input, reheader, dummy=None):
+    s=settings.get_value()
+    body=os.path.join(s.dataDir, uuid.uuid1().hex)
+    header=os.path.join(s.dataDir, uuid.uuid1().hex)
+    output=append_id(input, "reheader")
+    workDir=os.getcwd()
+    
+    try:
+        lg.info("Changing column headers...")
+        if not is_null_or_small(output, 10240):
+            return output
+        os.chdir(s.dataDir)  
+
+        os.system(f"tail -n +2 {input} > {body}")
+        os.system(f"head -n 1 {input} > {header}")
+        with open(header, "rt") as f:
+            line = f.readline()
+
+        for item in reheader:
+            line = line.replace(item[0], item[1])
+        
+        with open(header, "wt") as f:
+            f.write(line)
+
+        os.system(f"cat {header} {body} > {output}")
+
+        os.remove(header)
+        os.remove(body)
+
+        if is_null_or_small(output, 10240):
+            raise Exception(f"{output} file(s) may be corrupted.")
+        
+    except Exception as ex:
+        lg.critical(ex)
+        exit(1)
+
+    finally:
+        os.chdir(workDir)
+        return output
 
 def reheader_tsv(input, reheader, dummy=None):
     s=settings.get_value()
@@ -103,7 +145,7 @@ def to_tsv(input, fields, dest_dir=None):
         
         status = os.system(cmd)
         if status != 0: 
-            raise RuntimeError("Convert VCF to TSV using SnpSift is terminated unexpectedly.")
+            raise RuntimeError("Convert VCF to TSV using SnpSift was terminated unexpectedly.")
 
         if is_null_or_small(output, 10240):
             raise Exception(f"{output} file(s) may be corrupted.")
@@ -133,7 +175,7 @@ def rename_tags(input, before=None, after=None):
             status = shell_do_redir_stdout(f'bcftools annotate -c {before} {input}', output)
         
         if status != 0: 
-            raise RuntimeError("VCF tag rename using bcftools is terminated unexpectedly.")
+            raise RuntimeError("VCF tag rename using bcftools was terminated unexpectedly.")
 
         if is_null_or_small(output):
             raise Exception(f"{output} file(s) may be corrupted.")
@@ -163,7 +205,7 @@ def gnomad_filter(input, af, dummy=None):
             f'cat {input} | java -Xmx{s.totalMemSizeGB}g -jar {snpsiftBin} filter "( AF < {af} ) & ( AF_eas < {af} ) & ( AF_mid < {af} ) & ( AF_sas < {af} ) & ( AF_afr < {af} ) & ( AF_amr < {af} ) & ( AF_nfe < {af} )" > {output}'
         )
         if status != 0: 
-            raise RuntimeError("Filtration is terminated unexpectedly.")   
+            raise RuntimeError("Filtration was terminated unexpectedly.")   
         
         if is_null_or_small(output):
             raise Exception(f"{output} file(s) may be corrupted.")
@@ -193,7 +235,7 @@ def gnomad_genome(input):
 
         status=shell_do_redir_stdout(f"java -Xmx{s.totalMemSizeGB}g -jar {snpsiftBin} annotate -info AF,AF_eas,AF_eas,AF_sas,AF_mid,AF_afr,AF_amr,AF_nfe,AF_fin,AF_asj,AC,AC_eas,AC_sas,AC_mid,AC_afr,AC_amr,AC_nfe,AC_fin,AC_asj,AN,nhomalt -v {gnomadGenome} {input}", output)
         if status != 0: 
-            raise RuntimeError("Annotation is terminated unexpectedly.")
+            raise RuntimeError("Annotation was terminated unexpectedly.")
         
         if is_null_or_small(output):
             raise Exception(f"{output} file(s) may be corrupted.")
@@ -223,7 +265,7 @@ def gnomad_exome(input):
 
         status=shell_do_redir_stdout(f"java -Xmx{s.totalMemSizeGB}g -jar {snpsiftBin} annotate -info AF,AF_eas,AF_eas,AF_sas,AF_mid,AF_afr,AF_amr,AF_nfe,AF_fin,AF_asj,AC,AC_eas,AC_sas,AC_mid,AC_afr,AC_amr,AC_nfe,AC_fin,AC_asj,AN,nhomalt -v {gnomadExome} {input}", output)
         if status != 0: 
-            raise RuntimeError("Annotation is terminated unexpectedly.")
+            raise RuntimeError("Annotation was terminated unexpectedly.")
         
         if is_null_or_small(output):
             raise Exception(f"{output} file(s) may be corrupted.")
@@ -253,11 +295,49 @@ def annotate():
 
         status=shell_do_redir_stdout(f"java -Xmx{s.totalMemSizeGB}g -jar {snpeffBin} -v -stats pheno_GCH1_{s.ancestry}_final.ann.html GRCh38.mane.1.2.refseq {input}", output)
         if status != 0: 
-            raise RuntimeError("Annotation is terminated unexpectedly.")
+            raise RuntimeError("Annotation was terminated unexpectedly.")
         
         if is_null_or_small(output):
             raise Exception(f"{output} file(s) may be corrupted.")
                     
+    except Exception as ex:
+        lg.critical(ex)
+        exit(1)
+
+    finally:
+        os.chdir(workDir)
+        return output
+
+def merge_vcf():
+    s=settings.get_value()
+    workDir=os.getcwd()
+
+    try:
+        targets=[]
+        output=os.path.join(s.dataDir, "ancestry.merged.vcf.gz")
+
+        for path in Path(s.dataDir).rglob("*genome.fltr.retag.vcf"):
+            shell_do(f'bcftools sort -Oz -o {str(path)}.gz {str(path)}')
+            #shell_do(f'bgzip --threads {multiprocessing.cpu_count()} --force {str(path)}')
+
+        for path in Path(s.dataDir).rglob("*genome.fltr.retag.vcf.gz"):
+            lg.info(path.resolve())
+            shell_do(f'bcftools index --threads {multiprocessing.cpu_count()} --force {str(path)}')
+            targets.append(path.resolve())
+            
+        cmd = f'bcftools merge --threads {multiprocessing.cpu_count()} -m none -Oz {" ".join([str(file) for file in targets])}'
+        lg.info(cmd)
+        status = shell_do_redir_stdout(cmd, output)
+        if status != 0: 
+            raise RuntimeError("Merging VCFs using bcftools was terminated unexpectedly.")
+        
+        status = shell_do(f'bcftools index --threads {multiprocessing.cpu_count()} --force {output}')
+        if status != 0: 
+            raise RuntimeError("Indexing the merged VCF using bcftools was terminated unexpectedly.")
+        
+        if is_null_or_small(output):
+            raise Exception(f"{output} file(s) may be corrupted.")
+
     except Exception as ex:
         lg.critical(ex)
         exit(1)
@@ -425,10 +505,11 @@ def install_plink2():
 
 def main(args):
     ANCESTRY=args.ancestry
-    BILLING_PROJECT_ID=args.billing_project_id if args.billing_project_id is not None else os.environ["GOOGLE_PROJECT"]
-    WORKSPACE_NAMESPACE=args.workspace_namespace if args.workspace_namespace is not None else os.environ["WORKSPACE_NAMESPACE"]
-    WORKSPACE_NAME=args.workspace_name if args.workspace_name is not None else os.environ["WORKSPACE_NAME"]
-    WORKSPACE_BUCKET=args.workspace_bucket if args.workspace_bucket is not None else os.environ["WORKSPACE_BUCKET"]
+    if args.ancestry!=None:
+        BILLING_PROJECT_ID=args.billing_project_id if args.billing_project_id is not None else os.environ["GOOGLE_PROJECT"]
+        WORKSPACE_NAMESPACE=args.workspace_namespace if args.workspace_namespace is not None else os.environ["WORKSPACE_NAMESPACE"]
+        WORKSPACE_NAME=args.workspace_name if args.workspace_name is not None else os.environ["WORKSPACE_NAME"]
+        WORKSPACE_BUCKET=args.workspace_bucket if args.workspace_bucket is not None else os.environ["WORKSPACE_BUCKET"]
 
     GP2_RELEASE_PATH="gs://gp2tier2/release7_30042024"
     GP2_CLINICAL_RELEASE_PATH=f"{GP2_RELEASE_PATH}/clinical_data"
@@ -445,10 +526,15 @@ def main(args):
     s=settings.get_value()
     s.ancestry=args.ancestry
     s.vcfToTsv=args.vcf_to_tsv
-    s.billingProjectID=BILLING_PROJECT_ID
-    s.workspaceNamespace=WORKSPACE_NAMESPACE
-    s.workspaceName=WORKSPACE_NAME
-    s.workspaceBucket=WORKSPACE_BUCKET
+    s.homeDir=os.path.expanduser("~")   
+    s.toolDir=os.path.join(s.homeDir, "data", "gch1", "tools")
+    s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data")    
+    if args.ancestry!=None:
+        s.billingProjectID=BILLING_PROJECT_ID
+        s.workspaceNamespace=WORKSPACE_NAMESPACE
+        s.workspaceName=WORKSPACE_NAME
+        s.workspaceBucket=WORKSPACE_BUCKET
+        s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry)    
     s.gp2ReleasePath=GP2_RELEASE_PATH
     s.gp2ClinicalReleasePath=GP2_CLINICAL_RELEASE_PATH
     s.gp2RawGenoPath=GP2_RAW_GENO_PATH
@@ -457,17 +543,16 @@ def main(args):
     s.ampClinicalReleasePath=AMP_CLINICAL_RELEASE_PATH
     s.ampWGSReleasePath=AMP_WGS_RELEASE_PATH
     s.ampWGSReleasePlinkPath=AMP_WGS_RELEASE_PLINK_PATH
-    s.ampWGSReleasePlinkFiles=AMP_WGS_RELEASE_PLINK_PFILES
-    s.homeDir=os.path.expanduser("~")    
-    s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry)    
-    s.toolDir=os.path.join(s.homeDir, "data", "gch1", "tools")
+    s.ampWGSReleasePlinkFiles=AMP_WGS_RELEASE_PLINK_PFILES 
     s.totalMemSizeGB=2 ** (int((psutil.virtual_memory().total / (1024 ** 3))).bit_length() - 1)
     settings.set_value(s)
 
     retag_exome = "AF_exome:=INFO/AF,INFO/AF_eas_exome:=INFO/AF_eas,INFO/AF_eas_exome:=INFO/AF_eas,INFO/AF_sas_exome:=INFO/AF_sas,INFO/AF_mid_exome:=INFO/AF_mid,INFO/AF_afr_exome:=INFO/AF_afr,INFO/AF_amr_exome:=INFO/AF_amr,INFO/AF_nfe_exome:=INFO/AF_nfe,INFO/AF_fin_exome:=INFO/AF_fin,INFO/AF_asj_exome:=INFO/AF_asj,INFO/AC_exome:=INFO/AC,INFO/AC_eas_exome:=INFO/AC_eas,INFO/AC_sas_exome:=INFO/AC_sas,INFO/AC_mid_exome:=INFO/AC_mid,INFO/AC_afr_exome:=INFO/AC_afr,INFO/AC_amr_exome:=INFO/AC_amr,INFO/AC_nfe_exome:=INFO/AC_nfe,INFO/AC_fin_exome:=INFO/AC_fin,INFO/AC_asj_exome:=INFO/AC_asj,INFO/AN_exome:=INFO/AN,INFO/nhomalt_exome:=INFO/nhomalt"
     retag_genome = "AF_genome:=INFO/AF,INFO/AF_eas_genome:=INFO/AF_eas,INFO/AF_eas_genome:=INFO/AF_eas,INFO/AF_sas_genome:=INFO/AF_sas,INFO/AF_mid_genome:=INFO/AF_mid,INFO/AF_afr_genome:=INFO/AF_afr,INFO/AF_amr_genome:=INFO/AF_amr,INFO/AF_nfe_genome:=INFO/AF_nfe,INFO/AF_fin_genome:=INFO/AF_fin,INFO/AF_asj_genome:=INFO/AF_asj,INFO/AC_genome:=INFO/AC,INFO/AC_eas_genome:=INFO/AC_eas,INFO/AC_sas_genome:=INFO/AC_sas,INFO/AC_mid_genome:=INFO/AC_mid,INFO/AC_afr_genome:=INFO/AC_afr,INFO/AC_amr_genome:=INFO/AC_amr,INFO/AC_nfe_genome:=INFO/AC_nfe,INFO/AC_fin_genome:=INFO/AC_fin,INFO/AC_asj_genome:=INFO/AC_asj,INFO/AN_genome:=INFO/AN,INFO/nhomalt_genome:=INFO/nhomalt"
     tsv_fields = 'CHROM POS REF ALT QUAL FILTER "ANN[*].GENE" "LOF[*].GENE" "NMD[*].GENE" "ANN[*].FEATUREID" "ANN[*].EFFECT" "ANN[*].HGVS_C" "ANN[*].HGVS_P" "ANN[*].BIOTYPE" "ANN[*].RANK" "AF_exome" "AF_eas_exome" "AF_eas_exome" "AF_sas_exome" "AF_mid_exome" "AF_afr_exome" "AF_amr_exome" "AF_nfe_exome" "AF_fin_exome" "AF_asj_exome" "AC_exome" "AC_eas_exome" "AC_sas_exome" "AC_mid_exome" "AC_afr_exome" "AC_amr_exome" "AC_nfe_exome" "AC_fin_exome" "AC_asj_exome" "AN_exome" "nhomalt_exome" "AF_genome" "AF_eas_genome" "AF_eas_genome" "AF_sas_genome" "AF_mid_genome" "AF_afr_genome" "AF_amr_genome" "AF_nfe_genome" "AF_fin_genome" "AF_asj_genome" "AC_genome" "AC_eas_genome" "AC_sas_genome" "AC_mid_genome" "AC_afr_genome" "AC_amr_genome" "AC_nfe_genome" "AC_fin_genome" "AC_asj_genome" "AN_genome" "nhomalt_genome" "GEN[*].GT"'
-    reheader = [("CHROM","#CHROM"), ("GEN\[0\]",""), ("ANN\[\*\]\.GENE","Gene"), ("ANN\[\*\]\.FEATUREID","Transcript"), ("ANN\[\*\]\.HGVS_C","CDS"), ("ANN\[\*\]\.HGVS_P","AA"), ("ANN\[\*\]\.RANK","Exon"), ("ANN\[\*\].EFFECT", "Effect"), ("ANN\[\*\]\.BIOTYPE","Biotype"), ("LOF\[\*\]\.GENE","LOF"), ("NMD\[\*\]\.GENE","NMD"), ("dbNSFP_", "")]
+    #reheader = [("CHROM","#CHROM"), ("ANN\[\*\]\.GENE","Gene"), ("ANN\[\*\]\.FEATUREID","Transcript"), ("ANN\[\*\]\.HGVS_C","CDS"), ("ANN\[\*\]\.HGVS_P","AA"), ("ANN\[\*\]\.RANK","Exon"), ("ANN\[\*\].EFFECT", "Effect"), ("ANN\[\*\]\.BIOTYPE","Biotype"), ("LOF\[\*\]\.GENE","LOF"), ("NMD\[\*\]\.GENE","NMD"), ("dbNSFP_", "")]
+    reheader_py = [("CHROM","#CHROM"), ("ANN[*].GENE","Gene"), ("ANN[*].FEATUREID","Transcript"), ("ANN[*].HGVS_C","CDS"), ("ANN[*].HGVS_P","AA"), ("ANN[*].RANK","Exon"), ("ANN[*].EFFECT", "Effect"), ("ANN[*].BIOTYPE","Biotype"), ("LOF[*].GENE","LOF"), ("NMD[*].GENE","NMD"), ("dbNSFP_", "")]
+    headers = ["#CHROM", "POS", "REF", "ALT", "QUAL", "FILTER", "Gene", "LOF", "NMD", "Transcript", "Effect", "CDS", "AA", "Biotype", "Exon", "AF_exome", "AF_eas_exome", "AF_eas_exome.1", "AF_sas_exome", "AF_mid_exome", "AF_afr_exome", "AF_amr_exome", "AF_nfe_exome", "AF_fin_exome", "AF_asj_exome", "AC_exome", "AC_eas_exome", "AC_sas_exome", "AC_mid_exome", "AC_afr_exome", "AC_amr_exome", "AC_nfe_exome", "AC_fin_exome", "AC_asj_exome", "AN_exome", "nhomalt_exome", "AF_genome", "AF_eas_genome", "AF_eas_genome.1", "AF_sas_genome", "AF_mid_genome", "AF_afr_genome", "AF_amr_genome", "AF_nfe_genome", "AF_fin_genome", "AF_asj_genome", "AC_genome", "AC_eas_genome", "AC_sas_genome", "AC_mid_genome", "AC_afr_genome", "AC_amr_genome", "AC_nfe_genome", "AC_fin_genome", "AC_asj_genome", "AN_genome", "nhomalt_genome"]
 
     if s.ancestry != None:
         lg.info(f"Ancestry: {ANCESTRY}")
@@ -500,12 +585,24 @@ def main(args):
         lg.info(f"Run for {s.ancestry} was completed.")
 
     elif s.vcfToTsv == True:        
-        targets=[]
-        for path in Path(s.dataDir).rglob("*retag.vcf"):
-            targets.append(path.resolve())
-            lg.info(path.resolve())
+        lg.info(f"Merging VCFs...")
+        result = merge_vcf()
+        lg.info(f"Extracts sample names from merged VCF...")
+        samples = subprocess.check_output(f'zcat "{result}" | grep "#C" | cut -f 10-', shell=True).decode()
+        samples = samples.replace("\n","")        
+        result = result | Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv_py, reheader_py+[("GEN[*].GT", samples)])
 
-        #result = Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
+        lg.info(f"Select samples contains alt. het. or alt. homo...")
+        output = os.path.join(s.dataDir, "selected.tsv")
+        df = pd.read_csv(result, delimiter="\t")
+        gt_to_keep = ["0/1", "1/1", "1/0", "0|1", "1|1", "1|0"]
+        rows = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=1)
+        df.loc[rows].to_csv(output, index=False, sep="\t")
+        lg.info(f"Results were saved to: {output}")
+
+        #result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
+        #Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome) | \
+        #Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
         #shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataDir} {s.workspaceBucket}')
 
 if __name__ == "__main__":
