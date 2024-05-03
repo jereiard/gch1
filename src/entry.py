@@ -592,7 +592,7 @@ def main(args):
         samples = samples.replace("\n","")        
         result = result | Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv_py, reheader_py+[("GEN[*].GT", samples)])
 
-        lg.info(f"Select samples contains alt. het. or alt. homo...")
+        lg.info(f"Selecting samples contains alt. het. or alt. homo...")
         output = os.path.join(s.dataDir, "selected.tsv")
         df = pd.read_csv(result, delimiter="\t")
         gt_to_keep = ["0/1", "1/1", "1/0", "0|1", "1|1", "1|0"]
