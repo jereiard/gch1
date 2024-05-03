@@ -438,6 +438,7 @@ def main(args):
 
     s=settings.get_value()
     s.ancestry=args.ancestry
+    s.vcfToTsv=args.vcf_to_tsv
     s.billingProjectID=BILLING_PROJECT_ID
     s.workspaceNamespace=WORKSPACE_NAMESPACE
     s.workspaceName=WORKSPACE_NAME
@@ -457,44 +458,55 @@ def main(args):
     s.totalMemSizeGB=2 ** (int((psutil.virtual_memory().total / (1024 ** 3))).bit_length() - 1)
     settings.set_value(s)
 
-    lg.info(f"Ancestry: {ANCESTRY}")
-    print("")
-    lg.info("Billing and Workspace")
-    lg.info(f"Workspace Namespace: {WORKSPACE_NAMESPACE}")
-    lg.info(f"Workspace Name: {WORKSPACE_NAME}")
-    lg.info(f"Billing Project: {BILLING_PROJECT_ID}")
-    lg.info(f"Workspace Bucket, where you can upload and download data: {WORKSPACE_BUCKET}")
-    print("")
-    lg.info("GP2 v6.0")
-    lg.info(f"Path to GP2 v6.0 Clinical Data: {GP2_CLINICAL_RELEASE_PATH}")
-    lg.info(f"Path to GP2 v6.0 Raw Genotype Data: {GP2_RAW_GENO_PATH}")
-    lg.info(f"Path to GP2 v6.0 Imputed Genotype Data: {GP2_IMPUTED_GENO_PATH}")
-    print("")
-    lg.info("AMP-PD v3.0")
-    lg.info(f"Path to AMP-PD v3.0 Clinical Data: {AMP_CLINICAL_RELEASE_PATH}")
-    lg.info(f"Path to AMP-PD v3.0 WGS Data: {AMP_WGS_RELEASE_PLINK_PATH}")
-    lg.info(f"Path to AMP-PD v3.0 WGS Data: {AMP_WGS_RELEASE_PLINK_PFILES}")
-    print("")
-
-    install_plink2()
-    install_snpeff()
-    copy_data()
-    extract_gch1()
-    
     retag_exome = "AF_exome:=INFO/AF,INFO/AF_eas_exome:=INFO/AF_eas,INFO/AF_eas_exome:=INFO/AF_eas,INFO/AF_sas_exome:=INFO/AF_sas,INFO/AF_mid_exome:=INFO/AF_mid,INFO/AF_afr_exome:=INFO/AF_afr,INFO/AF_amr_exome:=INFO/AF_amr,INFO/AF_nfe_exome:=INFO/AF_nfe,INFO/AF_fin_exome:=INFO/AF_fin,INFO/AF_asj_exome:=INFO/AF_asj,INFO/AC_exome:=INFO/AC,INFO/AC_eas_exome:=INFO/AC_eas,INFO/AC_sas_exome:=INFO/AC_sas,INFO/AC_mid_exome:=INFO/AC_mid,INFO/AC_afr_exome:=INFO/AC_afr,INFO/AC_amr_exome:=INFO/AC_amr,INFO/AC_nfe_exome:=INFO/AC_nfe,INFO/AC_fin_exome:=INFO/AC_fin,INFO/AC_asj_exome:=INFO/AC_asj,INFO/AN_exome:=INFO/AN,INFO/nhomalt_exome:=INFO/nhomalt"
     retag_genome = "AF_genome:=INFO/AF,INFO/AF_eas_genome:=INFO/AF_eas,INFO/AF_eas_genome:=INFO/AF_eas,INFO/AF_sas_genome:=INFO/AF_sas,INFO/AF_mid_genome:=INFO/AF_mid,INFO/AF_afr_genome:=INFO/AF_afr,INFO/AF_amr_genome:=INFO/AF_amr,INFO/AF_nfe_genome:=INFO/AF_nfe,INFO/AF_fin_genome:=INFO/AF_fin,INFO/AF_asj_genome:=INFO/AF_asj,INFO/AC_genome:=INFO/AC,INFO/AC_eas_genome:=INFO/AC_eas,INFO/AC_sas_genome:=INFO/AC_sas,INFO/AC_mid_genome:=INFO/AC_mid,INFO/AC_afr_genome:=INFO/AC_afr,INFO/AC_amr_genome:=INFO/AC_amr,INFO/AC_nfe_genome:=INFO/AC_nfe,INFO/AC_fin_genome:=INFO/AC_fin,INFO/AC_asj_genome:=INFO/AC_asj,INFO/AN_genome:=INFO/AN,INFO/nhomalt_genome:=INFO/nhomalt"
-    tsv_fields = 'CHROM POS REF ALT QUAL FILTER "ANN[*].GENE" "LOF[*].GENE" "NMD[*].GENE" "GEN[*].GT" "ANN[*].FEATUREID" "ANN[*].EFFECT" "ANN[*].HGVS_C" "ANN[*].HGVS_P" "ANN[*].BIOTYPE" "ANN[*].RANK" "AF_exome" "AF_eas_exome" "AF_eas_exome" "AF_sas_exome" "AF_mid_exome" "AF_afr_exome" "AF_amr_exome" "AF_nfe_exome" "AF_fin_exome" "AF_asj_exome" "AC_exome" "AC_eas_exome" "AC_sas_exome" "AC_mid_exome" "AC_afr_exome" "AC_amr_exome" "AC_nfe_exome" "AC_fin_exome" "AC_asj_exome" "AN_exome" "nhomalt_exome" "AF_genome" "AF_eas_genome" "AF_eas_genome" "AF_sas_genome" "AF_mid_genome" "AF_afr_genome" "AF_amr_genome" "AF_nfe_genome" "AF_fin_genome" "AF_asj_genome" "AC_genome" "AC_eas_genome" "AC_sas_genome" "AC_mid_genome" "AC_afr_genome" "AC_amr_genome" "AC_nfe_genome" "AC_fin_genome" "AC_asj_genome" "AN_genome" "nhomalt_genome"'
+    tsv_fields = 'CHROM POS REF ALT QUAL FILTER "ANN[*].GENE" "LOF[*].GENE" "NMD[*].GENE" "ANN[*].FEATUREID" "ANN[*].EFFECT" "ANN[*].HGVS_C" "ANN[*].HGVS_P" "ANN[*].BIOTYPE" "ANN[*].RANK" "AF_exome" "AF_eas_exome" "AF_eas_exome" "AF_sas_exome" "AF_mid_exome" "AF_afr_exome" "AF_amr_exome" "AF_nfe_exome" "AF_fin_exome" "AF_asj_exome" "AC_exome" "AC_eas_exome" "AC_sas_exome" "AC_mid_exome" "AC_afr_exome" "AC_amr_exome" "AC_nfe_exome" "AC_fin_exome" "AC_asj_exome" "AN_exome" "nhomalt_exome" "AF_genome" "AF_eas_genome" "AF_eas_genome" "AF_sas_genome" "AF_mid_genome" "AF_afr_genome" "AF_amr_genome" "AF_nfe_genome" "AF_fin_genome" "AF_asj_genome" "AC_genome" "AC_eas_genome" "AC_sas_genome" "AC_mid_genome" "AC_afr_genome" "AC_amr_genome" "AC_nfe_genome" "AC_fin_genome" "AC_asj_genome" "AN_genome" "nhomalt_genome" "GEN[*].GT"'
     reheader = [("CHROM","#CHROM"), ("GEN\[0\]",""), ("ANN\[\*\]\.GENE","Gene"), ("ANN\[\*\]\.FEATUREID","Transcript"), ("ANN\[\*\]\.HGVS_C","CDS"), ("ANN\[\*\]\.HGVS_P","AA"), ("ANN\[\*\]\.RANK","Exon"), ("ANN\[\*\].EFFECT", "Effect"), ("ANN\[\*\]\.BIOTYPE","Biotype"), ("LOF\[\*\]\.GENE","LOF"), ("NMD\[\*\]\.GENE","NMD"), ("dbNSFP_", "")]
 
-    result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
-    Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome) | \
-    Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
+    if s.ancestry != None:
+        lg.info(f"Ancestry: {ANCESTRY}")
+        print("")
+        lg.info("Billing and Workspace")
+        lg.info(f"Workspace Namespace: {WORKSPACE_NAMESPACE}")
+        lg.info(f"Workspace Name: {WORKSPACE_NAME}")
+        lg.info(f"Billing Project: {BILLING_PROJECT_ID}")
+        lg.info(f"Workspace Bucket, where you can upload and download data: {WORKSPACE_BUCKET}")
+        print("")
+        lg.info("GP2 v6.0")
+        lg.info(f"Path to GP2 v6.0 Clinical Data: {GP2_CLINICAL_RELEASE_PATH}")
+        lg.info(f"Path to GP2 v6.0 Raw Genotype Data: {GP2_RAW_GENO_PATH}")
+        lg.info(f"Path to GP2 v6.0 Imputed Genotype Data: {GP2_IMPUTED_GENO_PATH}")
+        print("")
+        lg.info("AMP-PD v3.0")
+        lg.info(f"Path to AMP-PD v3.0 Clinical Data: {AMP_CLINICAL_RELEASE_PATH}")
+        lg.info(f"Path to AMP-PD v3.0 WGS Data: {AMP_WGS_RELEASE_PLINK_PATH}")
+        lg.info(f"Path to AMP-PD v3.0 WGS Data: {AMP_WGS_RELEASE_PLINK_PFILES}")
+        print("")
 
-    shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataDir} {s.workspaceBucket}')
+        install_plink2()
+        install_snpeff()
+        copy_data()
+        extract_gch1()  
+    
+        result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
+        Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome)
+
+    elif s.vcfToTsv == True:        
+        targets=[]
+        for path in Path(s.dataDir).rglob("*retag.vcf"):
+            targets.append(path.resolve())
+            lg.info(path.resolve())
+
+        #result = Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
+        #shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataDir} {s.workspaceBucket}')
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description="GCH1 Project on GP2")
-    parser.add_argument("-e", "--ancestry", type=str, help="Enter one of the following: AAC, AFR, AJ, AMR, CAH, CAS, EAS, EUR, FIN, MDE, or SAS.", required=True)
+    
+    group = parser.add_mutually_exclusive_group(required=True)    
+    group.add_argument("-tsv", "--vcf-to-tsv", help="Converts ancestry VCFs to tsv", action="store_true")
+    group.add_argument("-e", "--ancestry", type=str, help="Enter one of the following: AAC, AFR, AJ, AMR, CAH, CAS, EAS, EUR, FIN, MDE, or SAS.", choices=["AAC", "AFR", "AJ", "AMR", "CAH", "CAS", "EAS", "EUR", "FIN", "MDE", "SAS"])
+
     parser.add_argument("-id", "--billing-project-id", type=str, help="GP2 Terra Billing Project ID")
     parser.add_argument("-ns", "--workspace-namespace", type=str, help="GP2 Terra Namespace of Workspace")
     parser.add_argument("-ws", "--workspace-name", type=str, help="GP2 Terra Workspace Name")
