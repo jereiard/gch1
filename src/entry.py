@@ -424,7 +424,7 @@ def main(args):
     WORKSPACE_NAME=args.workspace_name if args.workspace_name is not None else os.environ["WORKSPACE_NAME"]
     WORKSPACE_BUCKET=args.workspace_bucket if args.workspace_bucket is not None else os.environ["WORKSPACE_BUCKET"]
 
-    GP2_RELEASE_PATH="gs://gp2tier2/release6_21122023"
+    GP2_RELEASE_PATH="gs://gp2tier2/release7_30042024"
     GP2_CLINICAL_RELEASE_PATH=f"{GP2_RELEASE_PATH}/clinical_data"
     GP2_RAW_GENO_PATH=f"{GP2_RELEASE_PATH}/raw_genotypes"
     GP2_IMPUTED_GENO_PATH=f"{GP2_RELEASE_PATH}/imputed_genotypes"
@@ -482,11 +482,8 @@ def main(args):
     extract_gch1()
     
     retag_exome = "AF_exome:=INFO/AF,INFO/AF_eas_exome:=INFO/AF_eas,INFO/AF_eas_exome:=INFO/AF_eas,INFO/AF_sas_exome:=INFO/AF_sas,INFO/AF_mid_exome:=INFO/AF_mid,INFO/AF_afr_exome:=INFO/AF_afr,INFO/AF_amr_exome:=INFO/AF_amr,INFO/AF_nfe_exome:=INFO/AF_nfe,INFO/AF_fin_exome:=INFO/AF_fin,INFO/AF_asj_exome:=INFO/AF_asj,INFO/AC_exome:=INFO/AC,INFO/AC_eas_exome:=INFO/AC_eas,INFO/AC_sas_exome:=INFO/AC_sas,INFO/AC_mid_exome:=INFO/AC_mid,INFO/AC_afr_exome:=INFO/AC_afr,INFO/AC_amr_exome:=INFO/AC_amr,INFO/AC_nfe_exome:=INFO/AC_nfe,INFO/AC_fin_exome:=INFO/AC_fin,INFO/AC_asj_exome:=INFO/AC_asj,INFO/AN_exome:=INFO/AN,INFO/nhomalt_exome:=INFO/nhomalt"
-
     retag_genome = "AF_genome:=INFO/AF,INFO/AF_eas_genome:=INFO/AF_eas,INFO/AF_eas_genome:=INFO/AF_eas,INFO/AF_sas_genome:=INFO/AF_sas,INFO/AF_mid_genome:=INFO/AF_mid,INFO/AF_afr_genome:=INFO/AF_afr,INFO/AF_amr_genome:=INFO/AF_amr,INFO/AF_nfe_genome:=INFO/AF_nfe,INFO/AF_fin_genome:=INFO/AF_fin,INFO/AF_asj_genome:=INFO/AF_asj,INFO/AC_genome:=INFO/AC,INFO/AC_eas_genome:=INFO/AC_eas,INFO/AC_sas_genome:=INFO/AC_sas,INFO/AC_mid_genome:=INFO/AC_mid,INFO/AC_afr_genome:=INFO/AC_afr,INFO/AC_amr_genome:=INFO/AC_amr,INFO/AC_nfe_genome:=INFO/AC_nfe,INFO/AC_fin_genome:=INFO/AC_fin,INFO/AC_asj_genome:=INFO/AC_asj,INFO/AN_genome:=INFO/AN,INFO/nhomalt_genome:=INFO/nhomalt"
-
     tsv_fields = 'CHROM POS REF ALT QUAL FILTER "ANN[*].GENE" "LOF[*].GENE" "NMD[*].GENE" "GEN[0].GT" "ANN[*].FEATUREID" "ANN[*].EFFECT" "ANN[*].HGVS_C" "ANN[*].HGVS_P" "ANN[*].BIOTYPE" "ANN[*].RANK" "AF_exome" "AF_eas_exome" "AF_eas_exome" "AF_sas_exome" "AF_mid_exome" "AF_afr_exome" "AF_amr_exome" "AF_nfe_exome" "AF_fin_exome" "AF_asj_exome" "AC_exome" "AC_eas_exome" "AC_sas_exome" "AC_mid_exome" "AC_afr_exome" "AC_amr_exome" "AC_nfe_exome" "AC_fin_exome" "AC_asj_exome" "AN_exome" "nhomalt_exome" "AF_genome" "AF_eas_genome" "AF_eas_genome" "AF_sas_genome" "AF_mid_genome" "AF_afr_genome" "AF_amr_genome" "AF_nfe_genome" "AF_fin_genome" "AF_asj_genome" "AC_genome" "AC_eas_genome" "AC_sas_genome" "AC_mid_genome" "AC_afr_genome" "AC_amr_genome" "AC_nfe_genome" "AC_fin_genome" "AC_asj_genome" "AN_genome" "nhomalt_genome"'
-
     reheader = [("CHROM","#CHROM"), ("GEN\[0\]",""), ("ANN\[\*\]\.GENE","Gene"), ("ANN\[\*\]\.FEATUREID","Transcript"), ("ANN\[\*\]\.HGVS_C","CDS"), ("ANN\[\*\]\.HGVS_P","AA"), ("ANN\[\*\]\.RANK","Exon"), ("ANN\[\*\].EFFECT", "Effect"), ("ANN\[\*\]\.BIOTYPE","Biotype"), ("LOF\[\*\]\.GENE","LOF"), ("NMD\[\*\]\.GENE","NMD"), ("dbNSFP_", "")]
 
     result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
@@ -494,7 +491,7 @@ def main(args):
     Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
 
 if __name__ == "__main__":
-    parser=argparse.ArgumentParser(description="GCH1 Projcet on GP2")
+    parser=argparse.ArgumentParser(description="GCH1 Project on GP2")
     parser.add_argument("-e", "--ancestry", type=str, help="Enter one of the following: AAC, AFR, AJ, AMR, CAH, CAS, EAS, EUR, FIN, MDE, or SAS.", required=True)
     parser.add_argument("-id", "--billing-project-id", type=str, help="GP2 Terra Billing Project ID")
     parser.add_argument("-ns", "--workspace-namespace", type=str, help="GP2 Terra Namespace of Workspace")
