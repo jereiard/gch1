@@ -491,6 +491,8 @@ def main(args):
         result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
         Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome)
 
+        lg.info(f"Run for {s.ancestry} was completed.")
+
     elif s.vcfToTsv == True:        
         targets=[]
         for path in Path(s.dataDir).rglob("*retag.vcf"):
