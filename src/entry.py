@@ -490,6 +490,8 @@ def main(args):
     Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome) | \
     Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
 
+    shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataDir} {s.workspaceBucket}')
+
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description="GCH1 Project on GP2")
     parser.add_argument("-e", "--ancestry", type=str, help="Enter one of the following: AAC, AFR, AJ, AMR, CAH, CAS, EAS, EUR, FIN, MDE, or SAS.", required=True)
