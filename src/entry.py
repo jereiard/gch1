@@ -56,6 +56,9 @@ def reheader_tsv_py(input, reheader, dummy=None):
     body=os.path.join(s.dataDir, uuid.uuid1().hex)
     header=os.path.join(s.dataDir, uuid.uuid1().hex)
     output=append_id(input, "reheader")
+    if Path(output).suffix != ".gz" and Path(output).suffix == ".vcf":
+        output = change_ext(output, ".gz")
+
     workDir=os.getcwd()
     
     try:
@@ -148,6 +151,36 @@ def to_tsv(input, fields, dest_dir=None):
             raise RuntimeError("Convert VCF to TSV using SnpSift was terminated unexpectedly.")
 
         if is_null_or_small(output, 10240):
+            raise Exception(f"{output} file(s) may be corrupted.")
+
+    except Exception as ex:
+        lg.critical(ex)
+        exit(1)
+
+    finally:
+        os.chdir(workDir)
+        return output
+
+def roi_vcf(input, region=None, after=None):
+    s=settings.get_value()
+    output=append_id(input, "roi")
+    workDir=os.getcwd()
+
+    try:
+        if region == None:
+            raise RuntimeError("Region chr:start-end is mandatory.")
+
+        lg.info(f"Finding the intersection of VCF and {region}...")
+        if not is_null_or_small(output):
+            return output
+        os.chdir(s.dataDir)   
+
+        status = shell_do_redir_stdout(f'bcftools view --threads {multiprocessing.cpu_count()} -O z "{input}" "{region}"', output)
+        
+        if status != 0: 
+            raise RuntimeError("VCF tag rename using bcftools was terminated unexpectedly.")
+
+        if is_null_or_small(output):
             raise Exception(f"{output} file(s) may be corrupted.")
 
     except Exception as ex:
@@ -278,12 +311,13 @@ def gnomad_exome(input):
         os.chdir(workDir)
         return output
 
-def annotate():
+def annotate(input=None):
     s=settings.get_value()
     snpeffDir=os.path.join(s.toolDir, "snpeff")
     snpeffBin=os.path.join(snpeffDir, "snpEff", "snpEff.jar")
     snpeffDB=os.path.join(snpeffDir, "snpEff", "data")
-    input=os.path.join(s.dataDir, f"pheno_GCH1_{s.ancestry}_final.vcf")
+    if input==None:
+        input=os.path.join(s.dataDir, f"pheno_GCH1_{s.ancestry}_final.vcf")
     output=append_id(input, "ann")
     workDir=os.getcwd()
 
@@ -515,6 +549,7 @@ def main(args):
     GP2_CLINICAL_RELEASE_PATH=f"{GP2_RELEASE_PATH}/clinical_data"
     GP2_RAW_GENO_PATH=f"{GP2_RELEASE_PATH}/raw_genotypes"
     GP2_IMPUTED_GENO_PATH=f"{GP2_RELEASE_PATH}/imputed_genotypes"
+    GP2_WGS_VCF_PATH="gs://gp2tier2/release6_21122023/wgs/var_calling/"
 
     AMP_RELEASE_PATH="gs://amp-pd-data/releases/2022_v3release_1115"
     AMP_CLINICAL_RELEASE_PATH=f"{AMP_RELEASE_PATH}/clinical"
@@ -534,7 +569,10 @@ def main(args):
         s.workspaceNamespace=WORKSPACE_NAMESPACE
         s.workspaceName=WORKSPACE_NAME
         s.workspaceBucket=WORKSPACE_BUCKET
-        s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry)    
+        s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry) 
+    if args.using_wgs!=None:
+        s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", "wgs") 
+    s.gp2WGSVCFPath=GP2_WGS_VCF_PATH
     s.gp2ReleasePath=GP2_RELEASE_PATH
     s.gp2ClinicalReleasePath=GP2_CLINICAL_RELEASE_PATH
     s.gp2RawGenoPath=GP2_RAW_GENO_PATH
@@ -583,6 +621,38 @@ def main(args):
         Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome)
 
         lg.info(f"Run for {s.ancestry} was completed.")
+    
+    elif args.using_wgs != None and args.using_wgs == True:
+        if not os.path.exists(s.dataDir):
+            os.makedirs(s.dataDir)
+            
+        if not os.path.exists(os.path.join(s.dataDir, "chr14.vcf.gz")):
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2WGSVCFPath}/chr14.vcf.gz {s.dataDir}')            
+            shell_do(f'gsutil -u {s.billingProjectID} -m cp -r {s.gp2WGSVCFPath}/chr14.vcf.gz.tbi {s.dataDir}')
+
+        vcf = os.path.join(s.dataDir, "chr14.vcf.gz")
+        result = vcf | Pipe2(roi_vcf, "chr14:54840007-54902836") | Pipe(annotate) | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
+        Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome)
+
+        lg.info(f"Run for {s.ancestry} was completed.")
+
+        lg.info(f"Extracts sample names from merged VCF...")
+        samples = subprocess.check_output(f'zcat "{result}" | grep "#C" | cut -f 10-', shell=True).decode()
+        samples = samples.replace("\n","")        
+        result = result | Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv_py, reheader_py+[("GEN[*].GT", samples)])
+
+        lg.info(f"Selecting samples contains alt. het. or alt. homo...")
+        output = os.path.join(s.dataDir, "selected_wgs.tsv")
+        df = pd.read_csv(result, delimiter="\t")
+        gt_to_keep = ["0/1", "1/1", "1/0", "0|1", "1|1", "1|0"]
+        rows = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=1)
+        cols = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=0)
+        for colHeader in headers:
+            cols[colHeader] = True
+        filtered = df.loc[rows]
+        filtered = filtered.loc[:, cols]
+        filtered.to_csv(output, index=False, sep="\t")
+        lg.info(f"Results were saved to: {output}")
 
     elif s.vcfToTsv == True:        
         lg.info(f"Merging VCFs...")
@@ -616,6 +686,7 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)    
     group.add_argument("-tsv", "--vcf-to-tsv", help="Converts ancestry VCFs to tsv", action="store_true")
     group.add_argument("-e", "--ancestry", type=str, help="Enter one of the following: AAC, AFR, AJ, AMR, CAH, CAS, EAS, EUR, FIN, MDE, or SAS.", choices=["AAC", "AFR", "AJ", "AMR", "CAH", "CAS", "EAS", "EUR", "FIN", "MDE", "SAS"])
+    group.add_argument("-wgs", "--using-wgs", help="Collect variants from WGS data", action="store_true")
 
     parser.add_argument("-id", "--billing-project-id", type=str, help="GP2 Terra Billing Project ID")
     parser.add_argument("-ns", "--workspace-namespace", type=str, help="GP2 Terra Namespace of Workspace")
