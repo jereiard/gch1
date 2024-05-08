@@ -554,7 +554,7 @@ def main(args):
     GP2_CLINICAL_RELEASE_PATH=f"{GP2_RELEASE_PATH}/clinical_data"
     GP2_RAW_GENO_PATH=f"{GP2_RELEASE_PATH}/raw_genotypes"
     GP2_IMPUTED_GENO_PATH=f"{GP2_RELEASE_PATH}/imputed_genotypes"
-    GP2_WGS_VCF_PATH="gs://gp2tier2/release6_21122023/wgs/var_calling/"
+    GP2_WGS_VCF_PATH="gs://gp2tier2/release6_21122023/wgs/var_calling/deepvariant"
 
     AMP_RELEASE_PATH="gs://amp-pd-data/releases/2022_v3release_1115"
     AMP_CLINICAL_RELEASE_PATH=f"{AMP_RELEASE_PATH}/clinical"
