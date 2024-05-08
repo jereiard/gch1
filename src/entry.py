@@ -175,7 +175,7 @@ def roi_vcf(input, region=None, after=None):
             return output
         os.chdir(s.dataDir)   
 
-        status = shell_do_redir_stdout(f'bcftools view --threads {multiprocessing.cpu_count()} -O z {input} {region}', output)
+        status = os.system(f'bcftools view --threads {multiprocessing.cpu_count()} -O z {input} {region} > {output}')
         
         if status != 0: 
             raise RuntimeError("VCF tag rename using bcftools was terminated unexpectedly.")
