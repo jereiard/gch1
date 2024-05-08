@@ -571,6 +571,10 @@ def main(args):
         s.workspaceBucket=WORKSPACE_BUCKET
         s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry) 
     if args.using_wgs!=None:
+        s.billingProjectID=BILLING_PROJECT_ID
+        s.workspaceNamespace=WORKSPACE_NAMESPACE
+        s.workspaceName=WORKSPACE_NAME
+        s.workspaceBucket=WORKSPACE_BUCKET
         s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", "wgs") 
     s.gp2WGSVCFPath=GP2_WGS_VCF_PATH
     s.gp2ReleasePath=GP2_RELEASE_PATH
