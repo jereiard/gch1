@@ -162,8 +162,8 @@ def to_tsv(input, fields, dest_dir=None):
 def roi_vcf(input, region=None, after=None):
     s=settings.get_value()
     output=append_id(input, "roi")
-    if Path(output).suffix != ".gz" and Path(output).suffix == ".vcf":
-        output = change_ext(output, ".gz")
+    if Path(output).suffix == ".gz" and Path(output).suffix != ".vcf":
+        output = change_ext(output, ".vcf")
         
     workDir=os.getcwd()
 
@@ -176,7 +176,7 @@ def roi_vcf(input, region=None, after=None):
             return output
         os.chdir(s.dataDir)   
 
-        status = os.system(f'bcftools view --threads {multiprocessing.cpu_count()} -O z {input} {region} > {output}')
+        status = os.system(f'bcftools view --threads {multiprocessing.cpu_count()} -O v {input} {region} > {output}')
         
         if status != 0: 
             raise RuntimeError("VCF tag rename using bcftools was terminated unexpectedly.")
