@@ -56,8 +56,6 @@ def reheader_tsv_py(input, reheader, dummy=None):
     body=os.path.join(s.dataDir, uuid.uuid1().hex)
     header=os.path.join(s.dataDir, uuid.uuid1().hex)
     output=append_id(input, "reheader")
-    if Path(output).suffix != ".gz" and Path(output).suffix == ".vcf":
-        output = change_ext(output, ".gz")
 
     workDir=os.getcwd()
     
@@ -164,6 +162,9 @@ def to_tsv(input, fields, dest_dir=None):
 def roi_vcf(input, region=None, after=None):
     s=settings.get_value()
     output=append_id(input, "roi")
+    if Path(output).suffix != ".gz" and Path(output).suffix == ".vcf":
+        output = change_ext(output, ".gz")
+        
     workDir=os.getcwd()
 
     try:
