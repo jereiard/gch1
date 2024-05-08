@@ -624,7 +624,7 @@ def main(args):
     
     elif args.using_wgs != None and args.using_wgs == True:
         install_snpeff()
-        
+
         if not os.path.exists(s.dataDir):
             os.makedirs(s.dataDir)
             
@@ -680,7 +680,10 @@ def main(args):
         #result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
         #Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome) | \
         #Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
-        #shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataDir} {s.workspaceBucket}')
+        
+    shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataDir} {s.workspaceBucket}')    
+    lg.info(f"Data were copied to workspace bucket.")
+    lg.info(f"Complete!")
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description="GCH1 Project on GP2")
