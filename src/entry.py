@@ -538,12 +538,17 @@ def install_plink2():
         os.chdir(workDir)
 
 def main(args):
+    s=settings.get_value()
     ANCESTRY=args.ancestry
-    if args.ancestry!=None:
+    if args.ancestry!=None or args.using_wgs!=None:
         BILLING_PROJECT_ID=args.billing_project_id if args.billing_project_id is not None else os.environ["GOOGLE_PROJECT"]
         WORKSPACE_NAMESPACE=args.workspace_namespace if args.workspace_namespace is not None else os.environ["WORKSPACE_NAMESPACE"]
         WORKSPACE_NAME=args.workspace_name if args.workspace_name is not None else os.environ["WORKSPACE_NAME"]
-        WORKSPACE_BUCKET=args.workspace_bucket if args.workspace_bucket is not None else os.environ["WORKSPACE_BUCKET"]
+        WORKSPACE_BUCKET=args.workspace_bucket if args.workspace_bucket is not None else os.environ["WORKSPACE_BUCKET"]        
+        s.billingProjectID=BILLING_PROJECT_ID
+        s.workspaceNamespace=WORKSPACE_NAMESPACE
+        s.workspaceName=WORKSPACE_NAME
+        s.workspaceBucket=WORKSPACE_BUCKET
 
     GP2_RELEASE_PATH="gs://gp2tier2/release7_30042024"
     GP2_CLINICAL_RELEASE_PATH=f"{GP2_RELEASE_PATH}/clinical_data"
@@ -558,23 +563,14 @@ def main(args):
     AMP_WGS_RELEASE_PLINK_PATH=os.path.join(AMP_WGS_RELEASE_PATH, "plink")
     AMP_WGS_RELEASE_PLINK_PFILES=os.path.join(AMP_WGS_RELEASE_PLINK_PATH, "pfiles")
 
-    s=settings.get_value()
     s.ancestry=args.ancestry
     s.vcfToTsv=args.vcf_to_tsv
     s.homeDir=os.path.expanduser("~")   
     s.toolDir=os.path.join(s.homeDir, "data", "gch1", "tools")
     s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data")    
     if args.ancestry!=None:
-        s.billingProjectID=BILLING_PROJECT_ID
-        s.workspaceNamespace=WORKSPACE_NAMESPACE
-        s.workspaceName=WORKSPACE_NAME
-        s.workspaceBucket=WORKSPACE_BUCKET
         s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry) 
     if args.using_wgs!=None:
-        s.billingProjectID=BILLING_PROJECT_ID
-        s.workspaceNamespace=WORKSPACE_NAMESPACE
-        s.workspaceName=WORKSPACE_NAME
-        s.workspaceBucket=WORKSPACE_BUCKET
         s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", "wgs") 
     s.gp2WGSVCFPath=GP2_WGS_VCF_PATH
     s.gp2ReleasePath=GP2_RELEASE_PATH
