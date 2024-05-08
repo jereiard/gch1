@@ -662,7 +662,7 @@ def main(args):
         lg.info(f"Merging VCFs...")
         result = merge_vcf()
         lg.info(f"Extracts sample names from merged VCF...")
-        samples = subprocess.check_output(f'zcat "{result}" | grep "#C" | cut -f 10-', shell=True).decode()
+        samples = subprocess.check_output(f'cat "{result}" | grep "#C" | cut -f 10-', shell=True).decode()
         samples = samples.replace("\n","")        
         result = result | Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv_py, reheader_py+[("GEN[*].GT", samples)])
 
