@@ -568,6 +568,7 @@ def main(args):
     s.vcfToTsv=args.vcf_to_tsv
     s.homeDir=os.path.expanduser("~")   
     s.toolDir=os.path.join(s.homeDir, "data", "gch1", "tools")
+    s.dataRoot=os.path.join(s.homeDir, "data")
     s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data")    
     if args.ancestry!=None:
         s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry) 
