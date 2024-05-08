@@ -623,6 +623,8 @@ def main(args):
         lg.info(f"Run for {s.ancestry} was completed.")
     
     elif args.using_wgs != None and args.using_wgs == True:
+        install_snpeff()
+        
         if not os.path.exists(s.dataDir):
             os.makedirs(s.dataDir)
             
