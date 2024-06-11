@@ -678,10 +678,31 @@ def main(args):
         filtered = filtered.loc[:, cols]
         filtered.to_csv(output, index=False, sep="\t")
         lg.info(f"Results were saved to: {output}")
+    
+    elif args.merge == True:
+        imputed_vcf = args.imputed_vcf
+        wgs_vcf = args.wgs_vcf
+        merged_vcf = os.path.join(s.dataDir,'merged.vcf.gz')
+        os.system(f'bcftools merge --force-samples --threads 96 -m none -W -Oz -o {merged_vcf} {imputed_vcf} {wgs_vcf}')
+        lg.info(f"Extracts sample names from merged VCF...")
+        samples = subprocess.check_output(f'zcat "{merged_vcf}" | grep "#C" | cut -f 10-', shell=True).decode()
+        samples = samples.replace("\n","")        
+        result = merged_vcf | Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv_py, reheader_py+[("GEN[*].GT", samples)])
+        result = os.path.join(s.dataDir,result)
 
-        #result = annotate() | Pipe(gnomad_exome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_exome) | \
-        #Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome) | \
-        #Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
+        lg.info(f"Selecting samples contains alt. het. or alt. homo...")
+        output = os.path.join(s.dataDir, "selected_merged.tsv")
+        df = pd.read_csv(result, delimiter="\t", dtype=str)
+        gt_to_keep = ["0/1", "1/1", "1/0", "0|1", "1|1", "1|0"]
+        rows = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=1)
+        cols = (df.map(lambda x: str(x) in gt_to_keep)).any(axis=0)
+        for colHeader in headers:
+            cols[colHeader] = True
+        filtered = df.loc[rows]
+        filtered = filtered.loc[:, cols]
+        filtered.to_csv(output, index=False, sep="\t")
+        lg.info(f"Results were saved to: {output}")
+
         
     #shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataRoot} {s.workspaceBucket}')    
     #lg.info(f"Data were copied to workspace bucket.")
@@ -694,11 +715,14 @@ if __name__ == "__main__":
     group.add_argument("-tsv", "--vcf-to-tsv", help="Converts ancestry VCFs to tsv", action="store_true")
     group.add_argument("-e", "--ancestry", type=str, help="Enter one of the following: AAC, AFR, AJ, AMR, CAH, CAS, EAS, EUR, FIN, MDE, or SAS.", choices=["AAC", "AFR", "AJ", "AMR", "CAH", "CAS", "EAS", "EUR", "FIN", "MDE", "SAS"])
     group.add_argument("-wgs", "--using-wgs", help="Collect variants from WGS data", action="store_true")
+    group.add_argument("-m", "--merge", help="Merge imputed and wgs data", action="store_true")
 
     parser.add_argument("-id", "--billing-project-id", type=str, help="GP2 Terra Billing Project ID")
     parser.add_argument("-ns", "--workspace-namespace", type=str, help="GP2 Terra Namespace of Workspace")
     parser.add_argument("-ws", "--workspace-name", type=str, help="GP2 Terra Workspace Name")
     parser.add_argument("-gcs", "--workspace-bucket", type=str, help="GP2 Terra Workspace bucket (Google Cloud Storage)")
+    parser.add_argument("-i", "--imputed-vcf", type=str, help="Imputed VCF")
+    parser.add_argument("-w", "--wgs-vcf", type=str, help="WGS VCF")
     args=parser.parse_args()
     
     main(args)
