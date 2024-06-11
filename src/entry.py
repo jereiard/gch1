@@ -572,7 +572,7 @@ def main(args):
     s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data")    
     if args.ancestry!=None:
         s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", s.ancestry) 
-    if args.using_wgs!=None:
+    if args.using_wgs==True:
         s.dataDir=os.path.join(s.homeDir, "data", "gch1", "data", "wgs") 
     s.gp2WGSVCFPath=GP2_WGS_VCF_PATH
     s.gp2ReleasePath=GP2_RELEASE_PATH
