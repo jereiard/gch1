@@ -227,9 +227,9 @@ def main():
     if not os.path.exists(os.path.join(s.CLINICAL_DATA_DIR, 'master_key_release7_final.csv')):
         shell_do(f'gsutil -u {s.BILLING_PROJECT_ID} -m cp {s.GP2_CLINICAL_RELEASE_PATH}/master_key_release7_final.csv {s.CLINICAL_DATA_DIR}')
     if not os.path.exists(os.path.join(s.USER_DATA_DIR,'selected_merged.tsv.gz')):
-        shell_do(f"gsutil cp gs://fc-66ffe54f-b734-406f-8f37-ec2292017a9e/user_data/selected_merged.tsv.gz {os.path.join(s.USER_DATA_DIR, "selected_merged.tsv.gz")}")
+        shell_do(f"gsutil cp gs://fc-66ffe54f-b734-406f-8f37-ec2292017a9e/user_data/selected_merged.tsv.gz {os.path.join(s.USER_DATA_DIR, 'selected_merged.tsv.gz')}")
     if not os.path.exists(os.path.join(s.USER_DATA_DIR,'all_variants.csv.gz')):
-        shell_do(f"gsutil cp gs://fc-66ffe54f-b734-406f-8f37-ec2292017a9e/user_data/all_variants.csv.gz {os.path.join(s.USER_DATA_DIR, "all_variants.csv.gz")}")
+        shell_do(f"gsutil cp gs://fc-66ffe54f-b734-406f-8f37-ec2292017a9e/user_data/all_variants.csv.gz {os.path.join(s.USER_DATA_DIR, 'all_variants.csv.gz')}")
 
     # Step 1: Categorize samples into Case and Control groups
     lg.info('Step 1: Categorize samples into Case and Control groups')
