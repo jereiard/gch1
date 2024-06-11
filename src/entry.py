@@ -683,8 +683,8 @@ def main(args):
         #Pipe(gnomad_genome) | Pipe2(gnomad_filter, 0.05) | Pipe2(rename_tags, retag_genome) | \
         #Pipe2(to_tsv, tsv_fields) | Pipe2(reheader_tsv, reheader)
         
-    shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataRoot} {s.workspaceBucket}')    
-    lg.info(f"Data were copied to workspace bucket.")
+    #shell_do(f'gsutil -mu {s.billingProjectID} cp -r {s.dataRoot} {s.workspaceBucket}')    
+    #lg.info(f"Data were copied to workspace bucket.")
     lg.info(f"Complete!")
 
 if __name__ == "__main__":
