@@ -5,6 +5,19 @@ import pandas as pd
 from io import StringIO
 import urllib.parse
 import shlex
+from google.cloud import storage
+from pck.log import logger as lg
+
+def gcs_download(project_id, bucket, source_path, destination_path):
+        # This snippet demonstrates how to list buckets.
+    # *NOTE*: Replace the client created below with the client required for your application.
+    # Note that the credentials are not specified when constructing the client.
+    # Hence, the client library will look for credentials using ADC.
+    storage_client = storage.Client(project=project_id)
+    bucket = storage_client.get_bucket(bucket)
+    blob = bucket.blob(source_path)
+    blob.download_to_filename(destination_path)
+    lg.info(f'Blob {source_path} downloaded to {destination_path}.')
 
 # Utility routine for printing a shell command before executing it
 def shell_do(command):

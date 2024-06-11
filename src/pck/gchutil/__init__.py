@@ -9,3 +9,4 @@ from .utils import shell_do_redir_stdout
 from .utils import append_id
 from .utils import is_null_or_small
 from .utils import change_ext
+from .utils import gcs_download
