@@ -360,7 +360,7 @@ def merge_vcf():
             shell_do(f'bcftools index --threads {multiprocessing.cpu_count()} --force {str(path)}')
             targets.append(path.resolve())
             
-        cmd = f'bcftools merge --threads {multiprocessing.cpu_count()} -m none -Oz {" ".join([str(file) for file in targets])}'
+        cmd = f'bcftools merge --force-samples --threads {multiprocessing.cpu_count()} -m none -Oz {" ".join([str(file) for file in targets])}'
         lg.info(cmd)
         status = shell_do_redir_stdout(cmd, output)
         if status != 0: 
