@@ -58,7 +58,7 @@ plink2 --threads 92 --bfile merged --make-pgen --out chr14_all_ancestry_merged
 ./plink2 --pfile gch1_all_ancestry_filtered --extract pruned_data.prune.in --make-pgen --out pruned_data_filtered
 ./plink2 --threads 92 --pfile pruned_data_filtered --pca 3 --out gch1_filtered_pca_result
 
-# Filter with MAF 0.01%, Hardy-Weinberg, Linkage disequilibriumz
+# Filter with MAF 0.01%, Hardy-Weinberg, Linkage disequilibrium
 ./plink2 --threads 92 --pfile gch1_all_ancestry_merged --max-maf 0.01 --hwe 1e-6 --make-pgen --out gch1_all_ancestry_filtered_re
 ./plink2 --threads 92 --pfile gch1_all_ancestry_filtered_re --indep-pairwise 50 5 0.2 --out pruned_data_re
 ./plink2 --threads 92 --pfile gch1_all_ancestry_filtered_re --extract pruned_data_re.prune.in --make-pgen --out pruned_data_filtered_re
