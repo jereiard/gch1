@@ -35,7 +35,7 @@ def separate_sample_case_control():
     s=sf.get_service_as('settings', Settings)
 
     # Check if previously processed
-    if os.path.exists(os.path.join(s.PROJECT_DATA_DIR, 'case-control-variants.csv.gz')):
+    if os.path.exists(os.path.join(s.PROJECT_DATA_DIR, 'case-control-samples.csv.gz')):
         return    
 
     # 1. Load data
@@ -61,7 +61,39 @@ def separate_sample_case_control():
     lg.info('Saving step 1 results...')
     merged_group.to_csv(os.path.join(s.PROJECT_DATA_DIR, 'case-control-samples.csv.gz'), compression='gzip', index=False)
 
-def separate_variant_case_control(classification='VUS'):      
+def separate_sample_case_control_aos():
+    # Retrieve settings
+    sf = SingletonFactory()
+    s=sf.get_service_as('settings', Settings)
+
+    # Check if previously processed
+    if os.path.exists(os.path.join(s.PROJECT_DATA_DIR, 'case-control-samples-aos.csv.gz')):
+        return    
+
+    # 1. Load data
+    lg.info('Loading data...')
+    df_master = pd.read_csv(os.path.join(s.CLINICAL_DATA_DIR,'master_key_release7_final.csv'))
+
+    # 2. Case group filtering
+    case_group = df_master[(df_master['pruned'] == 0) & (df_master['age_of_onset'] > 50)]
+
+    # 3. Control group filtering
+    control_group = df_master[(df_master['pruned'] == 0) & (df_master['age_of_onset'] <= 50)]
+
+    # 4. Extract necessary columns and add group names
+    case_group = case_group[['GP2ID', 'GP2sampleID']].copy()
+    case_group['Group'] = 'Case'
+    control_group = control_group[['GP2ID', 'GP2sampleID']].copy()
+    control_group['Group'] = 'Control'
+
+    # 5. Merge Case and control group
+    merged_group = pd.concat([case_group, control_group])
+
+    # 6. Export to CSV
+    lg.info('Saving step 1 results...')
+    merged_group.to_csv(os.path.join(s.PROJECT_DATA_DIR, 'case-control-samples-aos.csv.gz'), compression='gzip', index=False)
+
+def separate_variant_case_control(sample_case_control='case-control-samples.csv.gz', classification='VUS'):      
     # Retrieve settings
     sf = SingletonFactory()
     s=sf.get_service_as('settings', Settings)
@@ -72,7 +104,7 @@ def separate_variant_case_control(classification='VUS'):
     
     # 1. Load data
     lg.info('Loading data...')
-    df_samples = pd.read_csv(os.path.join(s.PROJECT_DATA_DIR, 'case-control-samples.csv.gz'))
+    df_samples = pd.read_csv(os.path.join(s.PROJECT_DATA_DIR, sample_case_control))
     df_variants = pd.read_csv(os.path.join(s.USER_DATA_DIR, 'all_variants.csv.gz'))
     df_ancestry = pd.read_csv(os.path.join(s.USER_DATA_DIR, 'selected_merged.tsv.gz'), delimiter='\t', dtype=str)
 
@@ -234,10 +266,12 @@ def main():
     # Step 1: Categorize samples into Case and Control groups
     lg.info('Step 1: Categorize samples into Case and Control groups')
     separate_sample_case_control()
+    separate_sample_case_control_aos()
     
     # Step 2: Assign variants into Case and Control samples
     lg.info('Step 2: Assign variants into Case and Control samples')
-    separate_variant_case_control('VUS')
+    #separate_variant_case_control('VUS')
+    separate_variant_case_control('case-control-samples-aos.csv.gz','VUS')
 
     # Step 3: Visualize data
     lg.info('Step 3: Visualize data')
