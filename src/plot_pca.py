@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
 # Read the sample information
-psam_df = pd.read_csv('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.psam', sep='\s+')
+psam_df = pd.read_csv('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.psam', sep='\s+')
 # Read the variant information
-pvar_df = pd.read_csv('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.pvar', sep='\s+')
+pvar_df = pd.read_csv('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.pvar', sep='\s+')
 
-if not os.path.exists('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_matrix.pkl') or not os.path.exists('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_df.pkl'):
+if not os.path.exists('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_matrix.pkl') or not os.path.exists('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_df.pkl'):
     # Load the genomic data using PyPLINK
-    ctx = PyPlink('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos')
+    ctx = PyPlink('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos')
 
     # Initialize a list to store genotype data
     genotypes = []
@@ -28,18 +28,18 @@ if not os.path.exists('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_
 
     # Only retian numeric part of the genotype
     geno_matrix = geno_df.applymap(lambda x: x if isinstance(x, int) else np.nan)
-    geno_df.to_pickle('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_df.pkl')
-    geno_matrix.to_pickle('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_matrix.pkl')
+    geno_df.to_pickle('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_df.pkl')
+    geno_matrix.to_pickle('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_matrix.pkl')
 else:    
-    geno_df = pd.read_pickle('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_df.pkl')
-    geno_matrix = pd.read_pickle('/home/jupyter/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_matrix.pkl')
+    geno_df = pd.read_pickle('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_df.pkl')
+    geno_matrix = pd.read_pickle('/home/jupyter/data/gch1-workdir/data/pca/pruned_data_filtered_aos.geno_matrix.pkl')
 
 # Read the eigenvector file
-eigenvec_df = pd.read_csv('/home/jupyter/gch1-workdir/data/pca/gch1_filtered_pca_result_aos.eigenvec', sep='\s+')
+eigenvec_df = pd.read_csv('/home/jupyter/data/gch1-workdir/data/pca/gch1_filtered_pca_result_aos.eigenvec', sep='\s+')
 #eigenvec_df.columns = ['FID', 'IID'] + [f'PC{i}' for i in range(1, 3)]
 
 # Read the eigenvalues file
-eigenval_df = pd.read_csv('/home/jupyter/gch1-workdir/data/pca/gch1_filtered_pca_result_aos.eigenval', sep='\s+', header=None)
+eigenval_df = pd.read_csv('/home/jupyter/data/gch1-workdir/data/pca/gch1_filtered_pca_result_aos.eigenval', sep='\s+', header=None)
 eigenval_df.columns = ['eigenval']
 
 # Extract PC1 scores
@@ -85,7 +85,7 @@ plt.title('PCA Plot by Group')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.savefig('/home/jupyter/gch1-workdir/data/pca/pca_aos.jpg', dpi=192)
+plt.savefig('/home/jupyter/data/gch1-workdir/data/pca/pca_aos.jpg', dpi=192)
 #plt.show()
 
 # Perform PCA on the top 1000 variants
@@ -117,5 +117,5 @@ plt.title('PCA Plot by Group (Top 1000 Variants)')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.savefig('/home/jupyter/gch1-workdir/data/pca/pca_aos_top1000.jpg', dpi=192)
+plt.savefig('/home/jupyter/data/gch1-workdir/data/pca/pca_aos_top1000.jpg', dpi=192)
 #plt.show()
